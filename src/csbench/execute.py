@@ -174,13 +174,13 @@ def run_benchmark(
         **engine_kwargs
     )
     
-    # Configure machine environment (threading, device, precision)
-    configure_environment(
-        simulation_engine=engine,
-        num_threads=num_threads,
-        device_type=device_type,
-        precision=precision
-    )
+    # # Configure machine environment (threading, device, precision)
+    # configure_environment(
+    #     simulation_engine=engine,
+    #     num_threads=num_threads,
+    #     device_type=device_type,
+    #     precision=precision
+    # )
     
     # Build results path
     results_path = build_results_path(
@@ -198,7 +198,8 @@ def run_benchmark(
     
     # Execute benchmarks
     execution_results = []
-    for i, params in tqdm.tqdm(enumerate(sampled_parameters)):
+    for i, params in enumerate(sampled_parameters):
+        print(f"Executing run {i}/{n_circuits}")
         expval, exec_time, fidelity = engine.expectation_value(
             qasm_circuit, params, observable
         )

@@ -10,7 +10,7 @@ PYTHON_SCRIPT="${SCRIPT_DIR}/main.py"
 ENGINE="statevector"
 ANSATZ="hardware_efficient"
 OBSERVABLE="global_z"
-NQUBITS=15
+NQUBITS=12
 DEPTH=4
 N_CIRCUITS=10
 RNG_SEED=42
@@ -24,10 +24,10 @@ STATEVECTOR_PLATFORM="numba"
 # Examples:
 # SIMULATION_KWARGS="max_bond_dimension=256,precision=64"
 # SIMULATION_KWARGS='{"max_bond_dim": 256, "precision": 64}'
-SIMULATION_KWARGS="max_bond_dimension=256"
+# SIMULATION_KWARGS="max_bond_dimension=256"
 
 # Machine configuration
-NUM_THREADS=1
+NUM_THREADS=8
 DEVICE_TYPE="cpu"  # Options: cpu, gpu, cuda, tpu
 MACHINE_PRECISION="float64"  # Options: float32, float64
 
