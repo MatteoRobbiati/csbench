@@ -1,2 +1,2 @@
-# mpstab-benchmarks
-Benchmarks of mpstab VS other packages
+# Benchmarking classical simulators of quantum computers
+

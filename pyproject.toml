@@ -7,7 +7,9 @@ readme = "README.md"
 packages = [{include = "csbench", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+# TODO: add mpstab to explicit dependencies when it is released
+python = ">=3.10,<3.14"
+qibo = "^0.3.2"
 
 [tool.poetry.dev-dependencies]
 
