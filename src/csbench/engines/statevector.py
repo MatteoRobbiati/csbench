@@ -7,9 +7,9 @@ from qibo.backends import Backend
 from csbench.engines.abstract import BenchmarkEngine
 from csbench.utils import obs_string_to_qibo_hamiltonian
 
+
 @dataclass
 class StateVectorEngine(BenchmarkEngine):
-
     _qibo_backend_name: str = "numpy"
     _qibo_platform_name: str = None
     _qibo_backend: Backend = None
@@ -20,7 +20,7 @@ class StateVectorEngine(BenchmarkEngine):
     def expectation_value(self, qasm_circuit, parameters, observable):
         """
         Compute the expectation value of the given observable on the given circuit.
-        
+
         """
         circuit = Circuit.from_qasm(qasm_circuit)
         circuit.set_parameters(parameters)
@@ -34,15 +34,15 @@ class StateVectorEngine(BenchmarkEngine):
         final_time = time.time()
 
         return expval, final_time - initial_time, 1.0
-    
+
     @property
     def qibo_backend(self):
         return self._qibo_backend
-    
+
     @property
     def qibo_platform(self):
         return self._qibo_platform
-    
+
     def set_qibo_backend(self, backend: str = "numpy", platform: str = None):
         """
         Set the Qibo backend and platform for the simulation. This can include the device to run on (e.g., "numpy", "tensorflow", "jax") and the platform (e.g., "cpu", "cuda", "tpu").

@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class BenchmarkEngine:
-
     _device: str = "cpu"
     _precision: str = "float64"
 
-    def expectation_value(self, circuit, observable)->tuple[float, float, float]:
+    def expectation_value(self, circuit, observable) -> tuple[float, float, float]:
         """
         Compute the expectation value of the given observable on the given circuit.
 
@@ -15,11 +15,10 @@ class BenchmarkEngine:
         """
         pass
 
-
     def simulation_configuration(self):
         """
-        Set all the relevant simulation hyperparameters. For example, a Tensor Network based engine might want to set 
-        the maximum bond dimension. 
+        Set all the relevant simulation hyperparameters. For example, a Tensor Network based engine might want to set
+        the maximum bond dimension.
         """
         pass
 
@@ -29,11 +28,11 @@ class BenchmarkEngine:
         """
         self._device = device
         self._precision = precision
-    
+
     @property
     def device(self):
         return self._device
-    
+
     @property
     def precision(self):
         return self._precision

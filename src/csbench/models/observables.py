@@ -1,7 +1,7 @@
 """Generates simple strings corresponding to our target observables."""
 
 
-def central_x(nqubits:int)->str:
+def central_x(nqubits: int) -> str:
     """
     Return the central X observable for a given number of qubits.
     This generator is usable only if an odd number of qubits is chosen.
@@ -13,7 +13,7 @@ def central_x(nqubits:int)->str:
     return obs_str
 
 
-def global_z(nqubits:int)->str:
+def global_z(nqubits: int) -> str:
     """
     Return the global Z observable for a given number of qubits.
     """
