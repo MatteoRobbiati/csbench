@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "csbench"
+version = "0.1.0"
+description = "Benchmarks of quantum computing packages"
+authors = ["MR^2"]
+readme = "README.md"
+packages = [{include = "csbench", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
