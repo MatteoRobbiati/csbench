@@ -28,6 +28,96 @@ def generate_benchmark_circuits(
         n_circuits:int
     )->tuple[str, list[str]]:
     """Generate a family of circuits which will be run to compute the statistics requirewd for the benchmark."""
+
+
+
+
+
+import numpy as np
+
+def build_circuit_qasm(
+    num_qubits: int, 
+    num_layers: int, 
+    J: float, 
+    h: float, 
+    b: float
+) -> str:
+    """
+    Generates an OpenQASM 2.0 string for the forward-time Kicked Ising Floquet circuit.
     
+    Parameters:
+    - num_qubits (int): Total number of qubits in the 1D chain.
+    - num_layers (int): Number of Floquet periods (t), where one period is an even+odd layer.
+    - J (float): Theoretical Ising coupling strength.
+    - h (float): Theoretical longitudinal field strength.
+    - b (float): Theoretical transverse kick strength.
+    
+    Returns:
+    - str: Valid OpenQASM 2.0 representation of the circuit.
+    """
+    if num_qubits < 2:
+        raise ValueError("The circuit requires at least 2 qubits.")
 
+    # Standard OpenQASM 2.0 headers
+    qasm_lines = [
+        "OPENQASM 2.0;",
+        'include "qelib1.inc";',
+        f"qreg q[{num_qubits}];"
+    ]
+    
+    # Map physical parameters to QASM rotation angles
+    theta_J = 2.0 * J
+    theta_h = 2.0 * h
+    theta_b = 2.0 * b
+    
+    def apply_u_block(q_n: int, q_n1: int):
+        """
+        Constructs the symmetric U_{n, n+1} block mapped from Equation (S5).
+        q_n corresponds to the bottom wire, q_n1 corresponds to the top wire.
+        """
+        # 1. RZ(2h) on bottom wire (q_n)
+        qasm_lines.append(f"rz({theta_h}) q[{q_n}];")
+        
+        # 2. RZZ(2J) decomposed into CX - RZ - CX
+        qasm_lines.append(f"cx q[{q_n}],q[{q_n1}];")
+        qasm_lines.append(f"rz({theta_J}) q[{q_n1}];")
+        qasm_lines.append(f"cx q[{q_n}],q[{q_n1}];")
+        
+        # 3. RX(2b) on both wires
+        qasm_lines.append(f"rx({theta_b}) q[{q_n}];")
+        qasm_lines.append(f"rx({theta_b}) q[{q_n1}];")
+        
+        # 4. RZZ(2J) decomposed
+        qasm_lines.append(f"cx q[{q_n}],q[{q_n1}];")
+        qasm_lines.append(f"rz({theta_J}) q[{q_n1}];")
+        qasm_lines.append(f"cx q[{q_n}],q[{q_n1}];")
+        
+        # 5. RZ(2h) on bottom wire (q_n)
+        qasm_lines.append(f"rz({theta_h}) q[{q_n}];")
+    
+    def apply_external_block(q_n: int, q_n1: int):
+        pass
 
+    # Construct the Floquet stroboscopic evolution
+    for layer in range(num_layers):
+        qasm_lines.append(f"// --- Floquet Period {layer + 1} ---")
+        
+        # Even sub-layer (\hat{U}_e)
+        qasm_lines.append("// Even Layer")
+        for i in range(0, num_qubits - 1, 2):
+            apply_u_block(i, i + 1)
+            
+        # Odd sub-layer (\hat{U}_o)
+        qasm_lines.append("// Odd Layer")
+        for i in range(1, num_qubits - 1, 2):
+            apply_u_block(i, i + 1)
+
+    return "\n".join(qasm_lines)
+
+qasm_circuit = build_circuit_qasm(
+    num_qubits=6, 
+    num_layers=2, 
+    J=np.pi/4, 
+    h=np.pi/8, 
+    b=0.2*np.pi
+)
