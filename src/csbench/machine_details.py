@@ -65,13 +65,20 @@ def configure_environment(
         and simulation_engine.qibo_backend is not None
     ):
         try:
-            # Qibo backends support set_device and set_precision
+            # Using Qibo notation
+            if target_device == "cpu":
+                qibo_target_device = "/CPU:0"
+            elif target_device == "gpu":
+                qibo_target_device = "/GPU:0"
+
+            # Qibo backends support set_device, set_precision and set_threads
             if hasattr(simulation_engine.qibo_backend, "set_device"):
-                simulation_engine.qibo_backend.set_device(target_device)
+                simulation_engine.qibo_backend.set_device(qibo_target_device)
+                simulation_engine.qibo_backend.set_threads(num_threads)
             if hasattr(simulation_engine.qibo_backend, "set_precision"):
                 simulation_engine.qibo_backend.set_precision(precision)
             print(
-                f"Qibo backend configured: device={target_device}, precision={precision}"
+                f"Qibo backend configured: device={target_device}, precision={precision}, threads: {num_threads}"
             )
         except Exception as e:
             print(f"Warning: Could not configure Qibo backend device/precision: {e}")

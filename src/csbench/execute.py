@@ -9,6 +9,7 @@ from csbench.engines.abstract import BenchmarkEngine
 from csbench.engines.statevector import StateVectorEngine
 from csbench.engines.mpstab import MPStabEngine
 from csbench.data_managing import build_results_path, save_benchmark_results
+from csbench.machine_details import configure_environment
 
 
 def get_engine(engine_name: str, **engine_kwargs) -> BenchmarkEngine:
@@ -38,13 +39,17 @@ def get_engine(engine_name: str, **engine_kwargs) -> BenchmarkEngine:
     return engines[engine_name](**engine_kwargs)
 
 
-def get_observable(observable_name: str, nqubits: int) -> str:
+def get_observable(
+    observable_name: str, nqubits: int, engine: str, use_sparse: bool = True
+) -> str:
     """
     Factory function to instantiate the appropriate observable.
 
     Args:
         observable_name: Name of the observable ("central_x" or "global_z")
         nqubits: Number of qubits
+        engine: The simulation engine we use in our benchmark run
+        use_sparse: Whether to use sparse matrix representation (default: True)
 
     Returns:
         Observable string representation
@@ -62,7 +67,13 @@ def get_observable(observable_name: str, nqubits: int) -> str:
             f"Observable '{observable_name}' not found. Available observables: {list(obs_funcs.keys())}"
         )
 
-    return obs_funcs[observable_name](nqubits)
+    as_symbolic = False
+    if engine == "statevector":
+        as_symbolic = True
+
+    return obs_funcs[observable_name](
+        nqubits=nqubits, as_symbolic=as_symbolic, use_sparse=use_sparse
+    )
 
 
 def build_benchmark(
@@ -74,6 +85,7 @@ def build_benchmark(
     rng_seed: int,
     magic_replacement_prob: float,
     observable_name: str,
+    use_sparse: bool = True,
     **engine_kwargs,
 ) -> Tuple[BenchmarkEngine, str, List, str]:
     """
@@ -109,7 +121,12 @@ def build_benchmark(
     )
 
     # Create the observable
-    observable = get_observable(observable_name, nqubits)
+    observable = get_observable(
+        observable_name=observable_name,
+        nqubits=nqubits,
+        engine=engine_name,
+        use_sparse=use_sparse,
+    )
 
     # Instantiate the engine
     engine = get_engine(engine_name, **engine_kwargs)
@@ -131,6 +148,7 @@ def run_benchmark(
     num_threads: int = 1,
     device_type: str = "cpu",
     precision: str = "float64",
+    use_sparse: bool = True,
     **engine_kwargs,
 ) -> Dict[str, Any]:
     """
@@ -168,16 +186,17 @@ def run_benchmark(
         rng_seed=rng_seed,
         magic_replacement_prob=magic_replacement_prob,
         observable_name=observable_name,
+        use_sparse=use_sparse,
         **engine_kwargs,
     )
 
-    # # Configure machine environment (threading, device, precision)
-    # configure_environment(
-    #     simulation_engine=engine,
-    #     num_threads=num_threads,
-    #     device_type=device_type,
-    #     precision=precision
-    # )
+    # Configure machine environment (threading, device, precision)
+    configure_environment(
+        simulation_engine=engine,
+        num_threads=num_threads,
+        device_type=device_type,
+        precision=precision,
+    )
 
     # Build results path
     results_path = build_results_path(
@@ -191,6 +210,8 @@ def run_benchmark(
         statevector_backend=engine_kwargs.get("_qibo_backend_name"),
         statevector_platform=engine_kwargs.get("_qibo_platform_name"),
         simulation_kwargs=simulation_kwargs,
+        rng_seed=rng_seed,
+        use_sparse=use_sparse,
     )
 
     # Execute benchmarks
@@ -214,6 +235,7 @@ def run_benchmark(
         "n_circuits": n_circuits,
         "rng_seed": rng_seed,
         "magic_replacement_prob": magic_replacement_prob,
+        "use_sparse": use_sparse,
         "engine_kwargs": engine_kwargs,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }

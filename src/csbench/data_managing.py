@@ -20,10 +20,12 @@ def build_results_path(
     statevector_backend: str = None,
     statevector_platform: str = None,
     simulation_kwargs: Dict[str, Any] = None,
+    rng_seed: int = None,
+    use_sparse: bool = True,
 ) -> Path:
     """
     Build the results directory path following the structure:
-    results/{ansatz}_{observable}/qubits{nqubits}_layers{depth}_repl_prob{magic_replacement_prob}/{engine}/
+    results/{ansatz}_{observable}/qubits{nqubits}_layers{depth}_repl_prob{magic_replacement_prob}_seed{rng_seed}/{engine}_{sparse_flag}/
 
     For statevector engine, appends backend and platform to engine name.
     For engines with simulation kwargs, appends them to the engine name.
@@ -39,6 +41,8 @@ def build_results_path(
         statevector_backend: Backend for statevector engine (optional)
         statevector_platform: Platform for statevector engine (optional)
         simulation_kwargs: Simulation configuration parameters (dict, optional)
+        rng_seed: Random seed for reproducibility (optional)
+        use_sparse: Whether sparse matrices are used (default: True)
 
     Returns:
         Path object pointing to the results directory
@@ -46,6 +50,8 @@ def build_results_path(
     # Create subdirectory names
     ansatz_obs_dir = f"{ansatz_name}_{observable_name}"
     params_dir = f"qubits{nqubits}_layers{depth}_repl_prob{magic_replacement_prob:.2f}"
+    if rng_seed is not None:
+        params_dir = f"{params_dir}_seed{rng_seed}"
 
     # Build engine directory name with backend/platform for statevector
     engine_dir = engine_name
@@ -53,6 +59,10 @@ def build_results_path(
         engine_dir = f"{engine_name}_{statevector_backend}"
         if statevector_platform:
             engine_dir = f"{engine_dir}_{statevector_platform}"
+
+    # Add sparse flag to engine directory name
+    sparse_flag = "sparse" if use_sparse else "dense"
+    engine_dir = f"{engine_dir}_{sparse_flag}"
 
     # Add simulation kwargs to engine directory name
     if simulation_kwargs:

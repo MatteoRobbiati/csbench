@@ -3,9 +3,9 @@ from dataclasses import dataclass
 
 from qibo import Circuit, construct_backend
 from qibo.backends import Backend
+from qibo.hamiltonians import Hamiltonian
 
 from csbench.engines.abstract import BenchmarkEngine
-from csbench.utils import obs_string_to_qibo_hamiltonian
 
 
 @dataclass
@@ -25,12 +25,14 @@ class StateVectorEngine(BenchmarkEngine):
         circuit = Circuit.from_qasm(qasm_circuit)
         circuit.set_parameters(parameters)
 
-        # Constructing a Qibo observable
-        hamiltonian = obs_string_to_qibo_hamiltonian(observable, self._qibo_backend)
+        if not isinstance(observable, Hamiltonian):
+            raise ValueError(
+                f"Statevector simulation requires a Qibo Hamiltonian, while {type(observable)} is provided."
+            )
 
         initial_time = time.time()
         statevector = circuit().state()
-        expval = hamiltonian.expectation_from_state(statevector)
+        expval = observable.expectation_from_state(statevector)
         final_time = time.time()
 
         return expval, final_time - initial_time, 1.0

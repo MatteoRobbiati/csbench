@@ -6,85 +6,114 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_SCRIPT="${SCRIPT_DIR}/main.py"
 
-# Default parameters
-ENGINE="statevector"
+# Common parameters
 ANSATZ="hardware_efficient"
-OBSERVABLE="global_z"
-NQUBITS=12
+OBSERVABLE="central_x"
+QUBIT_COUNTS=(3 5 7 9 11 13 15 17 19 21 23 25 27)
 DEPTH=4
-N_CIRCUITS=10
+N_CIRCUITS=5
 RNG_SEED=42
-MAGIC_REPLACEMENT_PROB=0.8
+MAGIC_REPLACEMENT_PROB=0.85
 RESULTS_DIR="${SCRIPT_DIR}/results"
-STATEVECTOR_BACKEND="qibojit"
-STATEVECTOR_PLATFORM="numba"
+DEVICE_TYPE="cpu"
+MACHINE_PRECISION="float64"
 
-# Simulation kwargs (for mpstab engine: max_bond_dim, precision, etc.)
-# Format: "key=value,key=value,..." or JSON format
-# Examples:
-# SIMULATION_KWARGS="max_bond_dimension=256,precision=64"
-# SIMULATION_KWARGS='{"max_bond_dim": 256, "precision": 64}'
-# SIMULATION_KWARGS="max_bond_dimension=256"
+# Function to run a single benchmark
+run_benchmark() {
+    local engine=$1
+    local nqubits=$2
+    local num_threads=$3
+    local backend=$4
+    local platform=$5
+    local sim_kwargs=$6
+    local use_sparse=$7
+    
+    echo "=========================================="
+    echo "Running Quantum Circuit Benchmark"
+    echo "=========================================="
+    echo "Engine:                 $engine"
+    if [ "$engine" = "statevector" ]; then
+        echo "StateVector Backend:    $backend"
+        if [ ! -z "$platform" ]; then
+            echo "StateVector Platform:   $platform"
+        fi
+    fi
+    if [ ! -z "$sim_kwargs" ]; then
+        echo "Simulation Kwargs:      $sim_kwargs"
+    fi
+    echo "Num Threads:            $num_threads"
+    echo "Use Sparse:             $use_sparse"
+    echo "Device Type:            $DEVICE_TYPE"
+    echo "Machine Precision:      $MACHINE_PRECISION"
+    echo "Ansatz:                 $ANSATZ"
+    echo "Observable:             $OBSERVABLE"
+    echo "Qubits:                 $nqubits"
+    echo "Depth:                  $DEPTH"
+    echo "Number of Circuits:     $N_CIRCUITS"
+    echo "RNG Seed:               $RNG_SEED"
+    echo "Magic Replacement Prob: $MAGIC_REPLACEMENT_PROB"
+    echo "Results Directory:      $RESULTS_DIR"
+    echo "=========================================="
+    echo ""
 
-# Machine configuration
-NUM_THREADS=8
-DEVICE_TYPE="cpu"  # Options: cpu, gpu, cuda, tpu
-MACHINE_PRECISION="float64"  # Options: float32, float64
+    python "$PYTHON_SCRIPT" \
+        --engine "$engine" \
+        --ansatz "$ANSATZ" \
+        --observable "$OBSERVABLE" \
+        --nqubits "$nqubits" \
+        --depth "$DEPTH" \
+        --n-circuits "$N_CIRCUITS" \
+        --rng-seed "$RNG_SEED" \
+        --magic-replacement-prob "$MAGIC_REPLACEMENT_PROB" \
+        --results-dir "$RESULTS_DIR" \
+        --statevector-backend "$backend" \
+        --statevector-platform "$platform" \
+        --simulation-kwargs "$sim_kwargs" \
+        --num-threads "$num_threads" \
+        --device-type "$DEVICE_TYPE" \
+        --machine-precision "$MACHINE_PRECISION" \
+        --sparse "$use_sparse"
 
-# Print configuration
-echo "=========================================="
-echo "Quantum Circuit Benchmark Execution"
-echo "=========================================="
-echo "Engine:                 $ENGINE"
-if [ "$ENGINE" = "statevector" ]; then
-    echo "StateVector Backend:    $STATEVECTOR_BACKEND"
-    echo "StateVector Platform:   $STATEVECTOR_PLATFORM"
-fi
-if [ ! -z "$SIMULATION_KWARGS" ]; then
-    echo "Simulation Kwargs:      $SIMULATION_KWARGS"
-fi
-echo "Num Threads:            $NUM_THREADS"
-echo "Device Type:            $DEVICE_TYPE"
-echo "Machine Precision:      $MACHINE_PRECISION"
-echo "Ansatz:                 $ANSATZ"
-echo "Observable:             $OBSERVABLE"
-echo "Qubits:                 $NQUBITS"
-echo "Depth:                  $DEPTH"
-echo "Number of Circuits:     $N_CIRCUITS"
-echo "RNG Seed:               $RNG_SEED"
-echo "Magic Replacement Prob: $MAGIC_REPLACEMENT_PROB"
-echo "Results Directory:      $RESULTS_DIR"
-echo "=========================================="
+    if [ $? -eq 0 ]; then
+        echo ""
+        echo "=========================================="
+        echo "Benchmark ($engine, $nqubits qubits) completed successfully!"
+        echo "=========================================="
+        echo ""
+    else
+        echo ""
+        echo "=========================================="
+        echo "Benchmark ($engine, $nqubits qubits) failed!"
+        echo "=========================================="
+        exit 1
+    fi
+}
+
+# Main loop over qubit counts
+for nqubits in "${QUBIT_COUNTS[@]}"; do
+    echo ""
+    echo "###########################################################"
+    echo "# Running benchmarks for $nqubits qubits"
+    echo "###########################################################"
+    echo ""
+
+    # Run 1: qibojit single thread with sparse matrices
+    echo "###########################################################"
+    echo "# Run 1: StateVector (qibojit) - Single Thread - Sparse"
+    echo "###########################################################"
+    echo ""
+    run_benchmark "statevector" "$nqubits" "1" "qibojit" "" "" "true"
+
+    # Run 2: mpstab with bond dimension 32 with sparse matrices
+    echo "###########################################################"
+    echo "# Run 2: MPS (mpstab) - Bond Dimension 32 - Sparse"
+    echo "###########################################################"
+    echo ""
+    run_benchmark "mpstab" "$nqubits" "8" "" "" "max_bond_dimension=32" "true"
+
+done
+
 echo ""
-
-# Run benchmark
-python "$PYTHON_SCRIPT" \
-    --engine "$ENGINE" \
-    --ansatz "$ANSATZ" \
-    --observable "$OBSERVABLE" \
-    --nqubits "$NQUBITS" \
-    --depth "$DEPTH" \
-    --n-circuits "$N_CIRCUITS" \
-    --rng-seed "$RNG_SEED" \
-    --magic-replacement-prob "$MAGIC_REPLACEMENT_PROB" \
-    --results-dir "$RESULTS_DIR" \
-    --statevector-backend "$STATEVECTOR_BACKEND" \
-    --statevector-platform "$STATEVECTOR_PLATFORM" \
-    --simulation-kwargs "$SIMULATION_KWARGS" \
-    --num-threads "$NUM_THREADS" \
-    --device-type "$DEVICE_TYPE" \
-    --machine-precision "$MACHINE_PRECISION"
-
-# Check execution status
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "=========================================="
-    echo "Benchmark completed successfully!"
-    echo "=========================================="
-else
-    echo ""
-    echo "=========================================="
-    echo "Benchmark failed!"
-    echo "=========================================="
-    exit 1
-fi
+echo "=========================================="
+echo "All benchmarks completed successfully!"
+echo "=========================================="
