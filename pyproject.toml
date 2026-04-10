@@ -15,6 +15,7 @@ scipy = "^1.0"
 pre-commit = "^3.0"
 
 [poetry.group.dev.dependencies]
+pytest = "^8.3.0"
 
 [build-system]
 requires = ["poetry-core"]
