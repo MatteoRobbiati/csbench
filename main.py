@@ -25,7 +25,7 @@ def main():
 
     parser.add_argument(
         "--engine",
-        choices=["statevector", "mpstab"],
+        choices=["statevector", "mpstab", "tensor_network"],
         default="statevector",
         help="Benchmark engine to use",
     )
