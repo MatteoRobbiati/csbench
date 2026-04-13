@@ -8,6 +8,7 @@ from csbench.models import circuits, observables
 from csbench.engines.abstract import BenchmarkEngine
 from csbench.engines.statevector import StateVectorEngine
 from csbench.engines.mpstab import MPStabEngine
+from csbench.engines.quimb import QuimbEngine
 from csbench.data_managing import build_results_path, save_benchmark_results
 from csbench.machine_details import configure_environment
 
@@ -29,6 +30,7 @@ def get_engine(engine_name: str, **engine_kwargs) -> BenchmarkEngine:
     engines = {
         "statevector": StateVectorEngine,
         "mpstab": MPStabEngine,
+        "tensor_network": QuimbEngine
     }
 
     if engine_name not in engines:
