@@ -24,7 +24,7 @@ def hardware_efficient(nqubits: int, depth: int) -> str:
     for d in range(depth):
         for q in range(nqubits):
             circuit.add(gates.RY(q, theta=0.0))
-        for q in range(nqubits - 1):
+        for q in range(nqubits):
             circuit.add(gates.CZ(q % nqubits, (q + 1) % nqubits))
     return circuit
 
