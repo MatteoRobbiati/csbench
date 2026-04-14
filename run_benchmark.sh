@@ -1,15 +1,15 @@
 #!/bin/bash
-#SBATCH --job-name=csbench_tn
+#SBATCH --job-name=mpstab_layers
 #SBATCH --chdir=/home/mattiaro/csbench
 #SBATCH --output=/home/mattiaro/csbench/logs/bench_TN_%A_%a.out
 #SBATCH --error=/home/mattiaro/csbench/logs/benchTN_%A_%a.err
-#SBATCH --array=0-989                                                       # 990 combinazioni totali
-#SBATCH --cpus-per-task=1                                                   
+#SBATCH --array=0-20  
+#SBATCH --cpus-per-task=8                                                   
 #SBATCH --mem=32G
-#SBATCH --time=04:00:00                                                     # Aumentato il tempo per circuiti più profondi/bond dim elevate
+#SBATCH --time=04:00:00
 
 # Thread configuration
-NUM_THREADS=1 
+NUM_THREADS=8 
 
 # Module Loading
 module purge
@@ -23,19 +23,32 @@ RESULTS_DIR="${PROJECT_DIR}/results"
 LOGS_DIR="${PROJECT_DIR}/logs"
 mkdir -p "$RESULTS_DIR" "$LOGS_DIR"
 
-# Simulation Parameters
-QUBITS=(5 15 25 35 45 55 65 75 85 95 105)        # 11 valori
-LAYERS=(1 5 10)                                 # 3 valori
-BOND_DIMS=(2 4 8 16 32 64)                      # 6 valori
-PROBS=(0.05 0.25 0.5 0.75 0.95)                 # 5 valori
+# Simulation Parameters (Modificali liberamente, senza usare virgole)
+QUBITS=(35)
+LAYERS=(25 30)
+BOND_DIMS=(8)
+PROBS=(0.05 0.25 0.5 0.75 0.95)
 
-# Logic for Slurm Array Indexing (Mappatura 990 combinazioni)
+# Calcolo dinamico delle dimensioni degli array
+NUM_Q=${#QUBITS[@]}
+NUM_L=${#LAYERS[@]}
+NUM_B=${#BOND_DIMS[@]}
+NUM_P=${#PROBS[@]}
+
+# Safety check: verifica se ci sono abbastanza combinazioni
+TOTAL_COMBINATIONS=$((NUM_Q * NUM_L * NUM_B * NUM_P))
+if [ "$SLURM_ARRAY_TASK_ID" -ge "$TOTAL_COMBINATIONS" ]; then
+    echo "Errore: SLURM_ARRAY_TASK_ID ($SLURM_ARRAY_TASK_ID) eccede il numero totale di combinazioni calcolate ($TOTAL_COMBINATIONS)."
+    exit 1
+fi
+
+# Logic for Slurm Array Indexing (Dinamica)
 ID=$SLURM_ARRAY_TASK_ID
 
-p_idx=$(( ID % 5 ))                             # Cicla ogni 5 (Probs)
-b_idx=$(( (ID / 5) % 6 ))                       # Cicla ogni 30 (Bond Dims)
-l_idx=$(( (ID / 30) % 3 ))                      # Cicla ogni 90 (Layers)
-q_idx=$(( (ID / 90) % 11 ))                     # Cicla ogni 990 (Qubits)
+p_idx=$(( ID % NUM_P ))
+b_idx=$(( (ID / NUM_P) % NUM_B ))
+l_idx=$(( (ID / (NUM_P * NUM_B)) % NUM_L ))
+q_idx=$(( (ID / (NUM_P * NUM_B * NUM_L)) % NUM_Q ))
 
 N_QUBITS=${QUBITS[$q_idx]}
 N_LAYERS=${LAYERS[$l_idx]}
