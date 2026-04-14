@@ -124,3 +124,9 @@ dmypy.json
 
 # Poetry
 poetry.lock
+logs/
+results/
+clean_logs.sh
+plots/
+src/csbench/ui/make_plots.py
+src/csbench/ui/plot_scalings.py
