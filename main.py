@@ -6,7 +6,6 @@ import argparse
 from csbench.execute import run_benchmark
 from csbench.utils import parse_simulation_kwargs
 
-
 def str2bool(v):
     """Convert string to boolean."""
     if isinstance(v, bool):
@@ -132,7 +131,7 @@ def main():
         engine_kwargs["_qibo_platform_name"] = args.statevector_platform
 
     # Add simulation kwargs to engine kwargs for mpstab
-    if args.engine == "mpstab":
+    if args.engine in ["mpstab", "tensor_network"]:
         engine_kwargs.update(sim_kwargs)
 
     # Run benchmark
@@ -163,6 +162,7 @@ def main():
     print("=" * 50)
     print("Benchmark completed successfully!")
     print("=" * 50)
+
 
 
 if __name__ == "__main__":
