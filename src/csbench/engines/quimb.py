@@ -119,6 +119,6 @@ class QuimbEngine(BenchmarkEngine):
             qibo_circ=circuit, 
             max_bond=self.max_bond_dimension
             ).psi
-        fidelity = psi_ket.norm(squared=True)
+        fidelity = psi_ket.fidelity_estimate()
 
         return expval, final_time - initial_time, fidelity
