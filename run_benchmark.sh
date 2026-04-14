@@ -1,119 +1,65 @@
 #!/bin/bash
+#SBATCH --job-name=csbench
+#SBATCH --chdir=/home/mattiaro/csbench
+#SBATCH --output=/home/mattiaro/csbench/logs/bench_MPSTAB_%A_%a.out
+#SBATCH --error=/home/mattiaro/csbench/logs/benchMPSTAB_%A_%a.err
+#SBATCH --array=0-209                                                       # 210 parameter combinations
+#SBATCH --cpus-per-task=1                                                   # Set this to the maximum threads you might ever use
+#SBATCH --mem=32G
 
-# Bash script template for running quantum circuit benchmarks
+# Set your desired number of threads here
+NUM_THREADS=1 
 
-# Script configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON_SCRIPT="${SCRIPT_DIR}/main.py"
+# Module Loading
+module purge
+module load Python/3.12.3-GCCcore-13.3.0
+source ~/envs/mpstab/bin/activate
 
-# Common parameters
-ANSATZ="hardware_efficient"
-OBSERVABLE="central_x"
-QUBIT_COUNTS=(3 5 7 9 11 13 15 17 19 21 23 25 27)
-DEPTH=4
-N_CIRCUITS=5
-RNG_SEED=42
-MAGIC_REPLACEMENT_PROB=0.85
-RESULTS_DIR="${SCRIPT_DIR}/results"
-DEVICE_TYPE="cpu"
-MACHINE_PRECISION="float64"
+# Directories and Setup
+PROJECT_DIR="/home/mattiaro/csbench"
+PYTHON_SCRIPT="${PROJECT_DIR}/main.py"
+RESULTS_DIR="${PROJECT_DIR}/results"
+LOGS_DIR="${PROJECT_DIR}/logs"
+mkdir -p "$RESULTS_DIR" "$LOGS_DIR"
 
-# Function to run a single benchmark
-run_benchmark() {
-    local engine=$1
-    local nqubits=$2
-    local num_threads=$3
-    local backend=$4
-    local platform=$5
-    local sim_kwargs=$6
-    local use_sparse=$7
-    
-    echo "=========================================="
-    echo "Running Quantum Circuit Benchmark"
-    echo "=========================================="
-    echo "Engine:                 $engine"
-    if [ "$engine" = "statevector" ]; then
-        echo "StateVector Backend:    $backend"
-        if [ ! -z "$platform" ]; then
-            echo "StateVector Platform:   $platform"
-        fi
-    fi
-    if [ ! -z "$sim_kwargs" ]; then
-        echo "Simulation Kwargs:      $sim_kwargs"
-    fi
-    echo "Num Threads:            $num_threads"
-    echo "Use Sparse:             $use_sparse"
-    echo "Device Type:            $DEVICE_TYPE"
-    echo "Machine Precision:      $MACHINE_PRECISION"
-    echo "Ansatz:                 $ANSATZ"
-    echo "Observable:             $OBSERVABLE"
-    echo "Qubits:                 $nqubits"
-    echo "Depth:                  $DEPTH"
-    echo "Number of Circuits:     $N_CIRCUITS"
-    echo "RNG Seed:               $RNG_SEED"
-    echo "Magic Replacement Prob: $MAGIC_REPLACEMENT_PROB"
-    echo "Results Directory:      $RESULTS_DIR"
-    echo "=========================================="
-    echo ""
+# Simulation Parameters
+QUBITS=(3 13 23 33 43 53 63)
+LAYERS=(1 5)
+BOND_DIMS=(2 8 32)
+PROBS=(0.05 0.25 0.5 0.75 0.95)
 
-    python "$PYTHON_SCRIPT" \
-        --engine "$engine" \
-        --ansatz "$ANSATZ" \
-        --observable "$OBSERVABLE" \
-        --nqubits "$nqubits" \
-        --depth "$DEPTH" \
-        --n-circuits "$N_CIRCUITS" \
-        --rng-seed "$RNG_SEED" \
-        --magic-replacement-prob "$MAGIC_REPLACEMENT_PROB" \
-        --results-dir "$RESULTS_DIR" \
-        --statevector-backend "$backend" \
-        --statevector-platform "$platform" \
-        --simulation-kwargs "$sim_kwargs" \
-        --num-threads "$num_threads" \
-        --device-type "$DEVICE_TYPE" \
-        --machine-precision "$MACHINE_PRECISION" \
-        --sparse "$use_sparse"
+# Logic for Slurm Array Indexing (0-209)
+ID=$SLURM_ARRAY_TASK_ID
+p_idx=$(( ID % 5 ))
+b_idx=$(( (ID / 5) % 3 ))
+l_idx=$(( (ID / 15) % 2 ))
+q_idx=$(( (ID / 30) % 7 ))
 
-    if [ $? -eq 0 ]; then
-        echo ""
-        echo "=========================================="
-        echo "Benchmark ($engine, $nqubits qubits) completed successfully!"
-        echo "=========================================="
-        echo ""
-    else
-        echo ""
-        echo "=========================================="
-        echo "Benchmark ($engine, $nqubits qubits) failed!"
-        echo "=========================================="
-        exit 1
-    fi
-}
+N_QUBITS=${QUBITS[$q_idx]}
+N_LAYERS=${LAYERS[$l_idx]}
+MAX_BOND=${BOND_DIMS[$b_idx]}
+R_PROB=${PROBS[$p_idx]}
 
-# Main loop over qubit counts
-for nqubits in "${QUBIT_COUNTS[@]}"; do
-    echo ""
-    echo "###########################################################"
-    echo "# Running benchmarks for $nqubits qubits"
-    echo "###########################################################"
-    echo ""
+# Export variables for numerical libraries (OpenMP, MKL)
+export OMP_NUM_THREADS=$NUM_THREADS
+export MKL_NUM_THREADS=$NUM_THREADS
+export OPENBLAS_NUM_THREADS=$NUM_THREADS
 
-    # Run 1: qibojit single thread with sparse matrices
-    echo "###########################################################"
-    echo "# Run 1: StateVector (qibojit) - Single Thread - Sparse"
-    echo "###########################################################"
-    echo ""
-    run_benchmark "statevector" "$nqubits" "1" "qibojit" "" "" "true"
+echo "Running Configuration: Q=$N_QUBITS, L=$N_LAYERS, Bond=$MAX_BOND, Prob=$R_PROB"
 
-    # Run 2: mpstab with bond dimension 32 with sparse matrices
-    echo "###########################################################"
-    echo "# Run 2: MPS (mpstab) - Bond Dimension 32 - Sparse"
-    echo "###########################################################"
-    echo ""
-    run_benchmark "mpstab" "$nqubits" "8" "" "" "max_bond_dimension=32" "true"
-
-done
-
-echo ""
-echo "=========================================="
-echo "All benchmarks completed successfully!"
-echo "=========================================="
+# Execution with taskset and dynamic variables
+python "$PYTHON_SCRIPT" \
+    --engine "tensor_network" \
+    --ansatz "hardware_efficient" \
+    --observable "central_x" \
+    --nqubits "$N_QUBITS" \
+    --depth "$N_LAYERS" \
+    --n-circuits 5 \
+    --rng-seed 42 \
+    --magic-replacement-prob "$R_PROB" \
+    --results-dir "$RESULTS_DIR" \
+    --simulation-kwargs "max_bond_dimension=$MAX_BOND" \
+    --num-threads "$NUM_THREADS" \
+    --device-type "cpu" \
+    --machine-precision "float64" \
+    --sparse "true"
