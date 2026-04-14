@@ -43,15 +43,14 @@ def configure_environment(
     # Only works on Linux/Windows; skips on macOS
     if platform.system() != "Darwin":
         try:
-            p = psutil.Process()
-            # Pins to the first 'n' cores
-            p.cpu_affinity(list(range(num_threads)))
-            print(f"CPU Affinity set to cores: {list(range(num_threads))}")
+            # In un ambiente Slurm, il processo è già limitato ai core corretti.
+            # Forzare range(num_threads) potrebbe causare errori di permessi.
+            affinity = os.sched_getaffinity(0)
+            print(f"Slurm/OS allocated cores: {affinity}")
         except Exception as e:
-            print(f"Warning: Could not set CPU affinity: {e}")
+            print(f"Warning: Could not check CPU affinity: {e}")
     else:
-        print("macOS detected: Skipping hard CPU affinity (not supported).")
-
+        print("macOS detected: Skipping affinity check.")
     # 3. SET ENGINE DEVICE AND PRECISION
     # Normalize device name
     target_device = _normalize_device(device_type)
