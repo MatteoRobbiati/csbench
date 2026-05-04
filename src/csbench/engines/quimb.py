@@ -104,12 +104,13 @@ class QuimbEngine(BenchmarkEngine):
             max_bond=self.max_bond_dimension
             ).psi
         
+        norm = psi_ket.norm(squared=True).real
         non_i_ops = {i: op.upper() for i, op in enumerate(observable) if op.upper() != "I"}
         psi_op = psi_ket.copy()
         for site, label in non_i_ops.items():
             psi_op.gate_(pauli(label), site)
 
-        expval = (psi_ket.H & psi_op).contract(optimize="auto-hq").real
+        expval = (psi_ket.H & psi_op).contract(optimize="auto-hq" ).real / norm
 
         final_time = time.time()
 
