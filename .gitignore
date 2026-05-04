@@ -130,3 +130,6 @@ clean_logs.sh
 plots/
 src/csbench/ui/make_plots.py
 src/csbench/ui/plot_scalings.py
+.vscode/settings.json
+*.prof
+prof.prof
